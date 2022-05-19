@@ -19,6 +19,9 @@ import (
 	"modernc.org/libc"
 )
 
+// Version returns the version of pcre2 embedded in this library.
+func Version() string { return lib.DPACKAGE_VERSION }
+
 // Regexp represents a pcre2 regular expression
 type Regexp struct {
 	mtx  *sync.Mutex

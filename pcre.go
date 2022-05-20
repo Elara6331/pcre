@@ -158,9 +158,9 @@ func (r *Regexp) FindAll(b []byte, n int) [][]byte {
 		matches = matches[:n]
 	}
 
-	var out [][]byte
-	for _, match := range matches {
-		out = append(out, b[match[0]:match[1]])
+	out := make([][]byte, len(matches))
+	for index, match := range matches {
+		out[index] = b[match[0]:match[1]]
 	}
 
 	return out
@@ -181,9 +181,9 @@ func (r *Regexp) FindAllIndex(b []byte, n int) [][]int {
 		matches = matches[:n]
 	}
 
-	var out [][]int
-	for _, match := range matches {
-		out = append(out, []int{int(match[0]), int(match[1])})
+	out := make([][]int, len(matches))
+	for index, match := range matches {
+		out[index] = []int{int(match[0]), int(match[1])}
 	}
 	return out
 }
@@ -200,9 +200,9 @@ func (r *Regexp) FindSubmatch(b []byte) [][]byte {
 	}
 	match := matches[0]
 
-	out := make([][]byte, len(match))
+	out := make([][]byte, 0, len(match)/2)
 	for i := 0; i < len(match); i += 2 {
-		out[i] = b[match[i]:match[i+1]]
+		out = append(out, b[match[i]:match[i+1]])
 	}
 	return out
 }
@@ -244,7 +244,7 @@ func (r *Regexp) FindAllSubmatch(b []byte, n int) [][][]byte {
 
 	out := make([][][]byte, len(matches))
 	for index, match := range matches {
-		var outMatch [][]byte
+		outMatch := make([][]byte, 0, len(match)/2)
 
 		for i := 0; i < len(match); i += 2 {
 			outMatch = append(outMatch, b[match[i]:match[i+1]])
@@ -298,6 +298,7 @@ func (r *Regexp) FindStringIndex(s string) []int {
 // FinAllString is the String version of FindAll
 func (r *Regexp) FindAllString(s string, n int) []string {
 	matches := r.FindAll([]byte(s), n)
+	
 	out := make([]string, len(matches))
 	for index, match := range matches {
 		out[index] = string(match)

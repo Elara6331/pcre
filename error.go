@@ -49,6 +49,7 @@ func ptrToError(tls *libc.TLS, pe uintptr) *PcreError {
 
 	err := codeToError(tls, eo.errCode)
 	err.offset = eo.errOffset
+	err.hasOffset = true
 
 	return err
 }
@@ -62,20 +63,21 @@ func codeToError(tls *libc.TLS, code int32) *PcreError {
 	// and store it in errBuf.
 	msgLen := lib.Xpcre2_get_error_message_8(tls, code, cErrBuf, 256)
 
-	return &PcreError{0, string(errBuf[:msgLen])}
+	return &PcreError{false, 0, string(errBuf[:msgLen])}
 }
 
 // PcreError represents errors returned
 // by underlying pcre2 functions.
 type PcreError struct {
-	offset lib.Tsize_t
-	errStr string
+	hasOffset bool
+	offset    lib.Tsize_t
+	errStr    string
 }
 
 // Error returns the string within the error,
 // prepending the offset if it exists.
 func (pe *PcreError) Error() string {
-	if pe.offset == 0 {
+	if !pe.hasOffset {
 		return pe.errStr
 	}
 	return fmt.Sprintf("offset %d: %s", pe.offset, pe.errStr)

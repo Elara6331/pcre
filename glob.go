@@ -7,17 +7,17 @@ import (
 	"modernc.org/libc"
 )
 
-// CompileGlob converts the given glob into a
-// pcre regular expression, and then compiles it,
-// returning the result.
-func CompileGlob(glob string) (*Regexp, error) {
+// ConvertGlob converts the given glob into a
+// pcre regular expression, and then returns
+// the result.
+func ConvertGlob(glob string) (string, error) {
 	tls := libc.NewTLS()
 	defer tls.Close()
 
 	// Get C string from given glob
 	cGlob, err := libc.CString(glob)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer libc.Xfree(tls, cGlob)
 	// Convert length to size_t
@@ -44,15 +44,25 @@ func CompileGlob(glob string) (*Regexp, error) {
 		0,
 	)
 	if ret != 0 {
-		return nil, codeToError(tls, ret)
+		return "", codeToError(tls, ret)
 	}
+	defer lib.Xpcre2_converted_pattern_free_8(tls, outPtr)
 
 	// Get output as byte slice
 	out := unsafe.Slice((*byte)(unsafe.Pointer(outPtr)), outLen)
-	// Convert output to string 
+	// Convert output to string
 	// This copies the data, so it's safe for later use
-	pattern := string(out)
+	return string(out), nil
+}
 
+// CompileGlob is a convenience function that converts
+// a glob to a pcre regular expression and then compiles
+// it.
+func CompileGlob(glob string) (*Regexp, error) {
+	pattern, err := ConvertGlob(glob)
+	if err != nil {
+		return nil, err
+	}
 	// Compile converted glob and return results
 	return Compile(pattern)
 }

@@ -370,7 +370,8 @@ func (r *Regexp) NumSubexp() int {
 // regular expression with the replacement text repl.
 // Inside repl, $ signs are interpreted as in Expand,
 // so for instance $1 represents the text of the first
-// submatch.
+// submatch and $name would represent the text of the
+// subexpression called "name".
 func (r *Regexp) ReplaceAll(src, repl []byte) []byte {
 	matches, err := r.match(src, 0, true)
 	if err != nil {
@@ -388,7 +389,10 @@ func (r *Regexp) ReplaceAll(src, repl []byte) []byte {
 		replStr := os.Expand(string(repl), func(s string) string {
 			i, err := strconv.Atoi(s)
 			if err != nil {
-				return ""
+				i = r.SubexpIndex(s)
+				if i == -1 {
+					return ""
+				}
 			}
 
 			// If there given match does not exist, return empty string

@@ -13,6 +13,8 @@ This package provides a CGo-free port of the PCRE2 regular expression library. T
 - linux/arm64
 - linux/arm
 - linux/riscv64
+- darwin/amd64
+- darwin/arm64
 
 More OS support is planned.
 

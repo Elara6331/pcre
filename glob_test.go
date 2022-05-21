@@ -1,6 +1,7 @@
 package pcre_test
 
 import (
+	"os"
 	"testing"
 
 	"go.arsenm.dev/pcre"
@@ -35,4 +36,86 @@ func TestCompileGlob(t *testing.T) {
 	if r.MatchString("/home") {
 		t.Error("expected /home not to match")
 	}
+}
+
+func TestGlob(t *testing.T) {
+	err := os.MkdirAll("pcretest/dir1", 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = os.MkdirAll("pcretest/dir2", 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = os.MkdirAll("pcretest/test1/dir4", 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = touch("pcretest/file1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	
+	err = touch("pcretest/file2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = touch("pcretest/test1/dir4/text.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	matches, err := pcre.Glob("pcretest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 1 || matches[0] != "pcretest" {
+		t.Errorf("expected [pcretest], got %v", matches)
+	}
+
+	matches, err = pcre.Glob("pcretest/dir*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 2 ||
+		matches[0] != "pcretest/dir1" ||
+		matches[1] != "pcretest/dir2" {
+		t.Errorf("expected [pcretest/dir1 pcretest/dir2], got %v", matches)
+	}
+
+	matches, err = pcre.Glob("pcretest/file*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 2 ||
+		matches[0] != "pcretest/file1" ||
+		matches[1] != "pcretest/file2" {
+		t.Errorf("expected [pcretest/file1 pcretest/file2], got %v", matches)
+	}
+
+	matches, err = pcre.Glob("pcretest/**/*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 1 ||
+		matches[0] != "pcretest/test1/dir4/text.txt" {
+		t.Errorf("expected [pcretest/test1/dir4/text.txt], got %v", matches)
+	}
+
+	err = os.RemoveAll("pcretest")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func touch(path string) error {
+	fl, err := os.OpenFile(path, os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	return fl.Close()
 }

@@ -378,7 +378,7 @@ func (r *Regexp) ReplaceAll(src, repl []byte) []byte {
 		panic(err)
 	}
 	if len(matches) == 0 {
-		return nil
+		return src
 	}
 
 	out := make([]byte, len(src))
@@ -423,7 +423,7 @@ func (r *Regexp) ReplaceAllFunc(src []byte, repl func([]byte) []byte) []byte {
 		panic(err)
 	}
 	if len(matches) == 0 {
-		return nil
+		return src
 	}
 
 	out := make([]byte, len(src))
@@ -447,7 +447,7 @@ func (r *Regexp) ReplaceAllLiteral(src, repl []byte) []byte {
 		panic(err)
 	}
 	if len(matches) == 0 {
-		return nil
+		return src
 	}
 
 	out := make([]byte, len(src))

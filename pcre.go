@@ -574,6 +574,10 @@ func replaceBytes(src, repl []byte, sOff, eOff lib.Tsize_t, diff int64) (int64, 
 // match calls the underlying pcre match functions. It re-runs the functions
 // until no matches are found if multi is set to true.
 func (r *Regexp) match(b []byte, options uint32, multi bool) ([][]lib.Tsize_t, error) {
+	if len(b) == 0 {
+		return nil, nil
+	}
+	
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 

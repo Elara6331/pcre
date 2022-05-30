@@ -6,6 +6,12 @@ This package provides a CGo-free port of the PCRE2 regular expression library. T
 
 ---
 
+## IMPORTANT NOTE!
+
+Due to the use of PCRE2, this library contains extra features such as lookaheads/lookbehinds. The stdlib regex engine, RE2, left these features out for a reason. It's easy to create regular expressions with this library that have exponential runtime. This creates the possibility of a denial of service attack. Only use this library if the extra features are needed and the user providing the regex is trusted (such as if it's in a config file). Otherwise, use the standard library regexp package.
+
+---
+
 ## Supported GOOS/GOARCH:
 
 - linux/amd64

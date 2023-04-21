@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"go.arsenm.dev/pcre"
+	"go.elara.ws/pcre"
 )
 
 func TestCompileError(t *testing.T) {

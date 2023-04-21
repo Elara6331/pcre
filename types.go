@@ -1,6 +1,6 @@
 package pcre
 
-import "go.arsenm.dev/pcre/lib"
+import "go.elara.ws/pcre/lib"
 
 type CompileOption uint32
 

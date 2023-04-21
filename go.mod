@@ -1,4 +1,4 @@
-module go.arsenm.dev/pcre
+module go.elara.ws/pcre
 
 go 1.18
 

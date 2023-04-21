@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"go.arsenm.dev/pcre/lib"
+	"go.elara.ws/pcre/lib"
 
 	"modernc.org/libc"
 	"modernc.org/libc/sys/types"

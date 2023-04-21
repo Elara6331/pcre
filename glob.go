@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"go.arsenm.dev/pcre/lib"
+	"go.elara.ws/pcre/lib"
 	"modernc.org/libc"
 )
 

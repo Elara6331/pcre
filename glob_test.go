@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"go.arsenm.dev/pcre"
+	"go.elara.ws/pcre"
 )
 
 func TestCompileGlob(t *testing.T) {

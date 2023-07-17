@@ -108,7 +108,7 @@ func Glob(glob string) ([]string, error) {
 
 	// Join splitDir and add filepath separator. This is the directory that will be searched.
 	dir := filepath.Join(splitDir...)
-	
+
 	if filepath.IsAbs(glob) {
 		dir = string(filepath.Separator) + dir
 	}

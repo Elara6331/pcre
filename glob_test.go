@@ -39,17 +39,17 @@ func TestCompileGlob(t *testing.T) {
 }
 
 func TestGlob(t *testing.T) {
-	err := os.MkdirAll("pcretest/dir1", 0755)
+	err := os.MkdirAll("pcretest/dir1", 0o755)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = os.MkdirAll("pcretest/dir2", 0755)
+	err = os.MkdirAll("pcretest/dir2", 0o755)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = os.MkdirAll("pcretest/test1/dir4", 0755)
+	err = os.MkdirAll("pcretest/test1/dir4", 0o755)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestGlob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	err = touch("pcretest/file2")
 	if err != nil {
 		t.Fatal(err)
@@ -113,7 +113,7 @@ func TestGlob(t *testing.T) {
 }
 
 func touch(path string) error {
-	fl, err := os.OpenFile(path, os.O_CREATE, 0644)
+	fl, err := os.OpenFile(path, os.O_CREATE, 0o644)
 	if err != nil {
 		return err
 	}

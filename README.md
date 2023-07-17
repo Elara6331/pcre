@@ -1,6 +1,6 @@
 # pcre
 
-[![Go Reference](https://pkg.go.dev/badge/go.arsenm.dev/pcre.svg)](https://pkg.go.dev/go.arsenm.dev/pcre)
+[![Go Reference](https://pkg.go.dev/badge/go.elara.ws/pcre.svg)](https://pkg.go.dev/go.elara.ws/pcre)
 
 This package provides a CGo-free port of the PCRE2 regular expression library. The [lib](lib) directory contains source code automatically translated from PCRE2's C source. This package wraps that code and provides an interface as close as possible to Go's stdlib [regexp](https://pkg.go.dev/regexp) package
 

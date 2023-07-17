@@ -234,3 +234,58 @@ func TestString(t *testing.T) {
 		t.Errorf("expected %s, got %s", expr, r.String())
 	}
 }
+
+func TestCallout(t *testing.T) {
+	const expr = `(https?)://([.\w\d]+\.[\w\d]{2,4}[\w\d?&=%/.-]*)(?C2)`
+	subject := "https://www.elara.ws/"
+
+	r := pcre.MustCompile(expr)
+	defer r.Close()
+
+	executed := false
+	r.SetCallout(func(cb *pcre.CalloutBlock) int32 {
+		executed = true
+
+		if cb.CalloutNumber != 2 {
+			t.Errorf("[CalloutNumber] expected %d, got %d", 2, cb.CalloutNumber)
+		}
+
+		if cb.CaptureTop != 3 {
+			t.Errorf("[CaptureTop] expected %d, got %d", 3, cb.CaptureTop)
+		}
+
+		if cb.CaptureLast != 2 {
+			t.Errorf("[CaptureLast] expected %d, got %d", 2, cb.CaptureLast)
+		}
+
+		if cb.Subject != subject {
+			t.Errorf("[Subject] expected %q, got %q", subject, cb.Subject)
+		}
+
+		if cb.StartMatch != 0 {
+			t.Errorf("[StartMatch] expected %d, got %d", 0, cb.StartMatch)
+		}
+
+		if cb.CurrentPosition != 21 {
+			t.Errorf("[CurrentPosition] expected %d, got %d", 0, cb.CurrentPosition)
+		}
+
+		if cb.PatternPosition != 53 {
+			t.Errorf("[PatternPosition] expected %d, got %d", 53, cb.PatternPosition)
+		}
+
+		if cb.NextItemLength != 0 {
+			t.Errorf("[NextItemLength] expected %d, got %d", 0, cb.NextItemLength)
+		}
+
+		return 0
+	})
+
+	m := r.MatchString(subject)
+
+	if !executed {
+		t.Error("expected callout to be executed")
+	} else if !m {
+		t.Error("expected regular expression to match the string")
+	}
+}

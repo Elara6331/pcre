@@ -27,7 +27,11 @@ type Regexp struct {
 	mtx  *sync.Mutex
 	expr string
 	re   uintptr
+	mctx uintptr
 	tls  *libc.TLS
+
+	calloutMtx *sync.Mutex
+	callout    *func(tls *libc.TLS, cbptr, data uintptr) int32
 }
 
 // Compile runs CompileOpts with no options.
@@ -73,10 +77,12 @@ func CompileOpts(pattern string, options CompileOption) (*Regexp, error) {
 
 	// Create regexp instance
 	regex := Regexp{
-		expr: pattern,
-		mtx:  &sync.Mutex{},
-		re:   r,
-		tls:  tls,
+		expr:       pattern,
+		mtx:        &sync.Mutex{},
+		re:         r,
+		mctx:       lib.Xpcre2_match_context_create_8(tls, 0),
+		tls:        tls,
+		calloutMtx: &sync.Mutex{},
 	}
 
 	// Make sure resources are freed if GC collects the
@@ -298,7 +304,7 @@ func (r *Regexp) FindStringIndex(s string) []int {
 // FinAllString is the String version of FindAll
 func (r *Regexp) FindAllString(s string, n int) []string {
 	matches := r.FindAll([]byte(s), n)
-	
+
 	out := make([]string, len(matches))
 	for index, match := range matches {
 		out[index] = string(match)
@@ -483,9 +489,12 @@ func (r *Regexp) ReplaceAllLiteralString(src, repl string) string {
 // between those expression matches.
 //
 // Example:
+//
 //	s := regexp.MustCompile("a*").Split("abaabaccadaaae", 5)
 //	// s: ["", "b", "b", "c", "cadaaae"]
+//
 // The count determines the number of substrings to return:
+//
 //	n > 0: at most n substrings; the last substring will be the unsplit remainder.
 //	n == 0: the result is nil (zero substrings)
 //	n < 0: all substrings
@@ -556,6 +565,116 @@ func (r *Regexp) SubexpIndex(name string) int {
 	return int(ret)
 }
 
+type CalloutFlags uint32
+
+const (
+	CalloutStartMatch = CalloutFlags(lib.DPCRE2_CALLOUT_STARTMATCH)
+	CalloutBacktrack  = CalloutFlags(lib.DPCRE2_CALLOUT_BACKTRACK)
+)
+
+type CalloutBlock struct {
+	// Version contains the version number of the block format.
+	// The current version is 2.
+	Version uint32
+
+	// CalloutNumber contains the number of the callout, in the range 0-255.
+	// This is the number that follows "?C". For callouts with string arguments,
+	// this will always be zero.
+	CalloutNumber uint32
+
+	// CaptureTop contains the number of the highest numbered substring
+	// captured so far plus one. If no substrings have yet been captured,
+	// CaptureTop will be set to 1.
+	CaptureTop uint32
+
+	// CaptureLast contains the number of the last substring that was captured.
+	CaptureLast uint32
+
+	// Substrings contains all of the substrings captured so far.
+	Substrings []string
+
+	Mark string
+
+	// Subject contains the string passed to the match function.
+	Subject string
+
+	// StartMatch contains the offset within the subject at which the current match attempt started.
+	StartMatch uint
+
+	// CurrentPosition contains the offset of the current match pointer within the subject.
+	CurrentPosition uint
+
+	// PatternPosition contains the offset within the pattern string to the next item to be matched.
+	PatternPosition uint
+
+	// NextItemLength contains the length of the next item to be processed in the pattern string.
+	NextItemLength uint
+
+	// CalloutStringOffset contains the code unit offset to the start of the callout argument string within the original pattern string.
+	CalloutStringOffset uint
+
+	// CalloutString is the string for the callout. For numerical callouts, this will always be empty.
+	CalloutString string
+
+	// CalloutFlags contains the following flags:
+	// 	CalloutStartMatch
+	// This is set for the first callout after the start of matching for each new starting position in the subject.
+	// 	CalloutBacktrack
+	// This is set if there has been a matching backtrack since the previous callout, or since the start of matching if this is the first callout from a pcre2_match() run.
+	//
+	// Both bits are set when a backtrack has caused a "bumpalong" to a new starting position in the subject. Output
+	CalloutFlags CalloutFlags
+}
+
+func (r *Regexp) SetCallout(fn func(cb *CalloutBlock) int32) error {
+	cfn := func(tls *libc.TLS, cbptr, data uintptr) int32 {
+		ccb := (*lib.Tpcre2_callout_block_8)(unsafe.Pointer(cbptr))
+
+		cb := &CalloutBlock{
+			Version:             ccb.Fversion,
+			CalloutNumber:       ccb.Fcallout_number,
+			CaptureTop:          ccb.Fcapture_top,
+			CaptureLast:         ccb.Fcapture_last,
+			Mark:                libc.GoString(ccb.Fmark),
+			StartMatch:          uint(ccb.Fstart_match),
+			CurrentPosition:     uint(ccb.Fcurrent_position),
+			PatternPosition:     uint(ccb.Fpattern_position),
+			NextItemLength:      uint(ccb.Fnext_item_length),
+			CalloutStringOffset: uint(ccb.Fcallout_string_offset),
+			CalloutFlags:        CalloutFlags(ccb.Fcallout_flags),
+		}
+
+		subjectBytes := unsafe.Slice((*byte)(unsafe.Pointer(ccb.Fsubject)), ccb.Fsubject_length)
+		cb.Subject = string(subjectBytes)
+
+		calloutStrBytes := unsafe.Slice((*byte)(unsafe.Pointer(ccb.Fcallout_string)), ccb.Fcallout_string_length)
+		cb.CalloutString = string(calloutStrBytes)
+
+		ovecSlice := unsafe.Slice((*lib.Tsize_t)(unsafe.Pointer(ccb.Foffset_vector)), (ccb.Fcapture_top*2)-1)[2:]
+		for i := 0; i < len(ovecSlice); i += 2 {
+			if i+1 >= len(ovecSlice) {
+				cb.Substrings = append(cb.Substrings, cb.Subject[ovecSlice[i]:])
+			} else {
+				cb.Substrings = append(cb.Substrings, cb.Subject[ovecSlice[i]:ovecSlice[i+1]])
+			}
+		}
+
+		x := fn(cb)
+		return x
+	}
+
+	// Prevent callout functions from being GC'd
+	r.calloutMtx.Lock()
+	defer r.calloutMtx.Unlock()
+	r.callout = &cfn
+
+	ret := lib.Xpcre2_set_callout_8(r.tls, r.mctx, *(*uintptr)(unsafe.Pointer(&cfn)), 0)
+	if ret < 0 {
+		return codeToError(r.tls, ret)
+	}
+	return nil
+}
+
 // replaceBytes replaces the bytes at a given location, and returns a new
 // offset, based on how much bigger or smaller the slice got after replacement
 func replaceBytes(src, repl []byte, sOff, eOff lib.Tsize_t, diff int64) (int64, []byte) {
@@ -577,7 +696,7 @@ func (r *Regexp) match(b []byte, options uint32, multi bool) ([][]lib.Tsize_t, e
 	if len(b) == 0 {
 		return nil, nil
 	}
-	
+
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
@@ -600,7 +719,7 @@ func (r *Regexp) match(b []byte, options uint32, multi bool) ([][]lib.Tsize_t, e
 	// While the offset is less than the length of the subject
 	for offset < cSubjectLen {
 		// Execute expression on subject
-		ret := lib.Xpcre2_match_8(r.tls, r.re, cSubject, cSubjectLen, offset, options, md, 0)
+		ret := lib.Xpcre2_match_8(r.tls, r.re, cSubject, cSubjectLen, offset, options, md, r.mctx)
 		if ret < 0 {
 			// If no match found, break
 			if ret == lib.DPCRE2_ERROR_NOMATCH {
@@ -670,6 +789,8 @@ func (r *Regexp) Close() error {
 
 	// Free the compiled code
 	lib.Xpcre2_code_free_8(r.tls, r.re)
+	// Free the match context
+	lib.Xpcre2_match_context_free_8(r.tls, r.mctx)
 	// Set regular expression to null
 	r.re = 0
 

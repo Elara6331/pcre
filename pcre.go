@@ -662,8 +662,7 @@ func (r *Regexp) SetCallout(fn func(cb *CalloutBlock) int32) error {
 			}
 		}
 
-		x := fn(cb)
-		return x
+		return fn(cb)
 	}
 
 	r.calloutMtx.Lock()

@@ -626,6 +626,9 @@ type CalloutBlock struct {
 	CalloutFlags CalloutFlags
 }
 
+// SetCallout sets a callout function that will be called at specified points in the matching operation.
+// fn should return zero if it ran successfully or a non-zero integer to force an error.
+// See https://www.pcre.org/current/doc/html/pcre2callout.html for more information.
 func (r *Regexp) SetCallout(fn func(cb *CalloutBlock) int32) error {
 	cfn := func(tls *libc.TLS, cbptr, data uintptr) int32 {
 		ccb := (*lib.Tpcre2_callout_block_8)(unsafe.Pointer(cbptr))

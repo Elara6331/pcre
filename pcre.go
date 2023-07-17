@@ -666,9 +666,10 @@ func (r *Regexp) SetCallout(fn func(cb *CalloutBlock) int32) error {
 		return x
 	}
 
-	// Prevent callout functions from being GC'd
 	r.calloutMtx.Lock()
 	defer r.calloutMtx.Unlock()
+
+	// Prevent callout function from being GC'd
 	r.callout = &cfn
 
 	ret := lib.Xpcre2_set_callout_8(r.tls, r.mctx, *(*uintptr)(unsafe.Pointer(&cfn)), 0)

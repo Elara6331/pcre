@@ -622,7 +622,7 @@ type CalloutBlock struct {
 	// 	CalloutBacktrack
 	// This is set if there has been a matching backtrack since the previous callout, or since the start of matching if this is the first callout from a pcre2_match() run.
 	//
-	// Both bits are set when a backtrack has caused a "bumpalong" to a new starting position in the subject. Output
+	// Both bits are set when a backtrack has caused a "bumpalong" to a new starting position in the subject.
 	CalloutFlags CalloutFlags
 }
 

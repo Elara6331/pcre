@@ -8,6 +8,7 @@
 package pcre
 
 import (
+	"math"
 	"os"
 	"runtime"
 	"strconv"
@@ -18,6 +19,8 @@ import (
 
 	"modernc.org/libc"
 )
+
+const Unset = math.MaxUint
 
 // Version returns the version of pcre2 embedded in this library.
 func Version() string { return lib.DPACKAGE_VERSION }
@@ -208,7 +211,11 @@ func (r *Regexp) FindSubmatch(b []byte) [][]byte {
 
 	out := make([][]byte, 0, len(match)/2)
 	for i := 0; i < len(match); i += 2 {
-		out = append(out, b[match[i]:match[i+1]])
+		if match[i] == Unset {
+			out = append(out, nil)
+		} else {
+			out = append(out, b[match[i]:match[i+1]])
+		}
 	}
 	return out
 }
@@ -253,7 +260,11 @@ func (r *Regexp) FindAllSubmatch(b []byte, n int) [][][]byte {
 		outMatch := make([][]byte, 0, len(match)/2)
 
 		for i := 0; i < len(match); i += 2 {
-			outMatch = append(outMatch, b[match[i]:match[i+1]])
+			if match[i] == Unset {
+				outMatch = append(outMatch, nil)
+			} else {
+				outMatch = append(outMatch, b[match[i]:match[i+1]])
+			}
 		}
 
 		out[index] = outMatch

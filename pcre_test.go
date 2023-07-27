@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"reflect"
 
 	"go.elara.ws/pcre"
 )
@@ -287,5 +288,13 @@ func TestCallout(t *testing.T) {
 		t.Error("expected callout to be executed")
 	} else if !m {
 		t.Error("expected regular expression to match the string")
+	}
+}
+
+func TestVarnish(t *testing.T) {
+	regex := pcre.MustCompile(`varnish(?: \(Varnish\/([\d.]{1,250})\))?`)
+	matches := regex.FindStringSubmatch("1.1 varnish")
+	if !reflect.DeepEqual(matches, []string{"varnish", ""}) {
+		t.Errorf(`Expected ["varnish" ""], got %q`, matches)
 	}
 }

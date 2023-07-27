@@ -1,0 +1,13 @@
+matrix:
+  platform:
+    - linux/amd64
+    - linux/arm64
+
+steps:
+  test:
+    image: golang:latest
+    commands:
+      - go test
+      - go build
+    when:
+      - event: push
